@@ -221,6 +221,7 @@ export default function Home() {
                         <div style={s.rcMeta}>
                           <div style={s.rcNumRow}>
                             <span style={s.rcNum}>{r.index || i + 1}</span>
+                            {r.imageType && <span style={s.typeBadge}>{r.imageType}</span>}
                             {r.isDecorative && <span style={s.decoBadge}>装飾的</span>}
                           </div>
                           {(r.filename || img.filename) && (
@@ -324,6 +325,7 @@ const s = {
   rcMeta: { flex: 1, minWidth: 0 },
   rcNumRow: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 },
   rcNum: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, fontSize: 11, fontWeight: 600, color: '#fff', background: '#2b70ef', borderRadius: '50%' },
+  typeBadge: { fontSize: 11, background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 20, padding: '2px 8px', fontWeight: 500 },
   decoBadge: { fontSize: 11, background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: 20, padding: '2px 8px', fontWeight: 500 },
   rcFilename: { fontSize: 11, color: '#94a3b8', fontFamily: 'monospace', wordBreak: 'break-all' },
   rcContext: { fontSize: 12, color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '7px 10px', marginBottom: 10, lineHeight: 1.6 },
