@@ -41,18 +41,37 @@ export default function Home() {
     const imgData = []
     tokens.forEach((tok, i) => {
       if (tok.type !== 'img') return
+      // 前後テキストを広めに取得（最大10ブロック・400文字）
       let prev = '', pc = 0
-      for (let j = i - 1; j >= 0 && pc < 3; j--) {
+      for (let j = i - 1; j >= 0 && pc < 10; j--) {
         if (tokens[j].type === 'text') { prev = tokens[j].value + ' ' + prev; pc++ }
       }
       let next = '', nc = 0
-      for (let j = i + 1; j < tokens.length && nc < 3; j++) {
+      for (let j = i + 1; j < tokens.length && nc < 10; j++) {
         if (tokens[j].type === 'text') { next += ' ' + tokens[j].value; nc++ }
       }
-      imgData.push({ ...tok, prev: prev.trim().slice(0, 150), next: next.trim().slice(0, 150) })
+      // figcaptionなどのキャプション取得
+      const caption = tok.caption || ''
+      imgData.push({
+        ...tok,
+        prev: prev.trim().slice(0, 400),
+        next: next.trim().slice(0, 400),
+        caption
+      })
     })
 
-    return { imgData, allText: text.slice(0, 2000) }
+    // キャプションをDOMから取得
+    doc.querySelectorAll('figure').forEach(fig => {
+      const img = fig.querySelector('img')
+      const cap = fig.querySelector('figcaption')
+      if (img && cap) {
+        const src = img.getAttribute('src') || ''
+        const found = imgData.find(d => d.src === src || d.filename === src.split('/').pop().split('?')[0])
+        if (found) found.caption = cap.textContent.trim()
+      }
+    })
+
+    return { imgData, allText: text.slice(0, 4000) }
   }
 
   function handleInput() {
