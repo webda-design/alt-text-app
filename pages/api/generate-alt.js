@@ -5,69 +5,71 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const ALT_RULES = `
 あなたはWCAG 2.0・JIS X 8341-3・Science Tokyo デザインシステムのaltルールを完全習得した専門家です。
 
-以下は両ガイドラインから学習した正確なルールです。厳密に従ってください。
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【判定フロー】必ずこの順で判断する
+【画像を実際に見て判断するルール】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Q1. 装飾的な画像か？（罫線・スペーサー・背景・雰囲気演出のみの写真・タイトルに添えられたイメージ写真）
-→ YES: alt="" （空文字を返す）
+画像が提供された場合、必ず画像の中身を直接確認してaltを生成すること。
+前後テキストは補足情報として使い、画像の視覚的内容を優先する。
 
-Q2. 文字を含む画像か？（ロゴ・ボタン・バナー・タイトル文字画像）
-→ YES: 画像内に書かれている文字をそのままaltにする
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【判定フロー】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Q3. グラフ・チャート・図解・フローチャート・インフォグラフィックか？
-→ YES: 【グラフルール】を適用する（最重要）
+Q1. 装飾的な画像か？（罫線・スペーサー・背景・タイトルに添えられただけのイメージ写真）
+→ YES: alt="" （空文字）
+
+Q2. 文字を含む画像か？（ロゴ・ボタン・バナー・タイトル文字）
+→ YES: 画像内の文字をそのままaltにする
+
+Q3. グラフ・チャート・図解・フローチャートか？（画像を見て確認）
+→ YES: 【グラフルール】を適用する
 
 Q4. 人物写真か？
-→ YES: 「○○の写真」または「○○の様子」の形式で記述する
+→ YES: 「○○の写真」または「○○の様子」形式
 
 Q5. 風景・場所・建物・商品の写真か？
-→ YES: 何が写っているかを具体的に記述する
+→ YES: 何が写っているかを具体的に記述
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【グラフルール（Q3のYES・最重要）】
+【グラフルール（最重要）】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-JIS X 8341-3 事例15・16より：
-グラフ画像のaltには、グラフが示す「主要なデータ・数値・割合・結論・傾向」を記述する。
+JIS X 8341-3 事例15（棒グラフ）・事例16（円グラフ）より：
+
+グラフのaltには「主要なデータ・数値・割合・結論」を記述する。
 グラフのタイトルや種類だけをaltにしてはいけない。
+「詳細は本文参照」とだけ書いてはいけない。
 
-■ 数値の取得方法（優先順位順）：
-1. 画像の直前・直後テキストに数値がある → そのまま使う
-2. 画像のキャプション（figcaption等）に数値がある → そのまま使う
-3. 記事全文の中に関連する数値がある → 探して使う
-4. どこにも数値がない → グラフのタイトル＋「詳細は本文参照」と記述する
+■ 数値の取得方法（優先順位）：
+1. 画像の中に数値が書いてある → そのまま読み取って使う（最優先）
+2. 画像の直前・直後テキストに数値がある → 使う
+3. 記事全文に数値がある → 探して使う
+4. どこにも数値がない → グラフのタイトル＋読み取れる傾向を記述
 
-■ 具体的な記述例：
-・円グラフ: 「アドバイザー対応満足度。大変満足72%、満足26%、不満1%、大変不満1%未満」
-・棒グラフ: 「アドバイザーのコミュニケーション満足度内訳。よく話を聞いてくれた73%、親しみやすかった63%、説明が分かりやすかった53%、適切に案内してくれた44%、適切に代替案を出してくれた41%」
-・本文に詳細あり: 「○○の調査結果グラフ。詳細は下記参照」
+■ 記述例：
+・円グラフ: 「アドバイザー対応満足度。大変満足72%、満足26%、不満1%」
+・棒グラフ: 「アドバイザーのコミュニケーション満足内訳。よく話を聞いてくれた73%、親しみやすかった63%、説明が分かりやすかった53%」
+・数値が読めない場合: 「○○に関する調査結果。最も高い項目は△△で、全体的に高い満足度を示している」
 
-■ 絶対禁止：
-× 「〜を表すグラフ」「〜グラフ」だけで終わる → 数値がない
-× 「アドバイザーの対応グラフ」→ 何も伝わらない
-× 前後テキストの文章をそのままコピー
+■ 禁止：
+× 「〜グラフ」だけで終わる（数値・傾向がない）
+× 「詳細は本文参照」とだけ書く
+× グラフを「装飾」と誤判定する
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【人物写真ルール（Q4のYES）】
+【人物写真ルール】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-JIS X 8341-3 事例5より：
-・名前が特定できる: 「○○の写真」（例：「理事長 岡本幸助の写真」）
-・状況・行動を伝える: 「○○の様子」（例：「車いすの人を含む6人が会議している様子」）
+・名前特定可能: 「○○の写真」
+・不特定の人物・行動: 「○○の様子」
 ・文章のイメージ写真（装飾目的）: alt=""
-・同ページに同じ人物の写真が複数ある場合: 同じaltを繰り返さず、状況を変えて記述
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【共通禁止事項】
+【共通禁止】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-× 「〜の画像」「〜の写真」という表現（写真は例外として使用可）
-× 「〜のイラスト」「〜の図」で終わる表現
+× 「〜の画像」「〜のイラスト」で終わる（「〜の写真」「〜の様子」は可）
 × 200文字を超える長文
-× 推測で存在しない数値・情報を作ること
-× 前後テキストをそのままコピーしてaltにすること
+× 存在しない情報を推測で作る
 `
 
 export default async function handler(req, res) {
@@ -81,63 +83,75 @@ export default async function handler(req, res) {
 
   const useCount = (imgData && imgData.length > 0) ? imgData.length : (manualCount || 1)
 
-  const imgInfo = (imgData && imgData.length > 0)
-    ? imgData.map((img, i) => {
-        const lines = [`[画像${i + 1}]`]
-        if (img.filename) lines.push(`ファイル名: ${img.filename}`)
-        if (img.alt) lines.push(`既存alt属性: "${img.alt}"`)
-        if (img.title) lines.push(`title属性: "${img.title}"`)
-        if (img.caption) lines.push(`キャプション: 「${img.caption}」`)
-        if (img.prev) lines.push(`直前テキスト（長め）: 「${img.prev}」`)
-        if (img.next) lines.push(`直後テキスト（長め）: 「${img.next}」`)
-        if (!img.filename && !img.alt && !img.prev && !img.next) {
-          lines.push('（前後テキスト取得不可。記事全文から数値・内容を探してください）')
-        }
-        return lines.join('\n')
-      }).join('\n\n')
-    : Array.from({ length: useCount }, (_, i) =>
-        `[画像${i + 1}]\n（位置情報なし。記事全文から内容を推測してください）`
-      ).join('\n\n')
+  try {
+    const results = []
 
-  const system = `${ALT_RULES}
-出力はJSONのみ。マークダウンのコードブロック・前置き・後置き一切不要。`
+    for (let i = 0; i < useCount; i++) {
+      const img = imgData && imgData[i] ? imgData[i] : {}
 
-  const userMsg = `以下の記事に含まれる画像${useCount}枚のaltテキストを生成してください。
+      // メッセージのコンテンツを構築
+      const contentParts = []
 
-【記事全文（数値・データが含まれます。グラフのaltに必ず活用してください）】
+      // 画像がbase64で提供されている場合は画像として送信
+      if (img.base64 && img.mediaType) {
+        contentParts.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: img.mediaType,
+            data: img.base64
+          }
+        })
+      }
+
+      const imgContext = []
+      if (img.filename) imgContext.push(`ファイル名: ${img.filename}`)
+      if (img.alt) imgContext.push(`既存alt: "${img.alt}"`)
+      if (img.caption) imgContext.push(`キャプション: 「${img.caption}」`)
+      if (img.prev) imgContext.push(`直前テキスト: 「${img.prev}」`)
+      if (img.next) imgContext.push(`直後テキスト: 「${img.next}」`)
+
+      const promptText = `
+【記事全文】
 ${allText}
 
-【各画像の情報】
-${imgInfo}
+【この画像（画像${i + 1}/${useCount}）の情報】
+${imgContext.join('\n') || '（情報なし）'}
 
-処理手順：
-1. 画像ごとに判定フロー（Q1〜Q5）を実行して種類を特定する
-2. グラフと判定した場合：記事全文を必ず検索し、その画像に対応する数値・割合・項目名を全て抽出してaltに含める。数値なしはNG。
-3. 人物写真と判定した場合：「○○の写真」または「○○の様子」形式で記述する
-4. 装飾と判定した場合：alts:["",""] isDecorative:true を返す
+上記のルールに従い、この画像のaltテキストを2案生成してください。
+${img.base64 ? '※画像が提供されています。画像の中身を直接確認してaltを生成してください。グラフの場合は画像内の数値を読み取って使用してください。' : '※画像は提供されていません。前後テキストと記事全文から判断してください。'}
 
-出力形式（JSONのみ）:
-{"results":[{"index":1,"filename":"ファイル名","imageType":"円グラフ|棒グラフ|フローチャート|人物写真|風景写真|商品写真|ロゴ|バナー|装飾|その他","alts":["推奨alt案A","推奨alt案B"],"reason":"判定根拠と使用したルール・数値の出典","isDecorative":false}]}`
+出力はJSONのみ：
+{"imageType":"円グラフ|棒グラフ|フローチャート|人物写真|風景写真|商品写真|ロゴ|バナー|装飾|その他","alts":["alt案A","alt案B"],"reason":"判定根拠","isDecorative":false}
+`
 
-  try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      system,
-      messages: [{ role: 'user', content: userMsg }]
-    })
+      contentParts.push({ type: 'text', text: promptText })
 
-    const raw = response.content.find(c => c.type === 'text')?.text || ''
-    const clean = raw.replace(/```json|```/g, '').trim()
-    let parsed
-    try { parsed = JSON.parse(clean) }
-    catch (e) {
-      const match = clean.match(/\{[\s\S]*\}/)
-      if (match) parsed = JSON.parse(match[0])
-      else throw new Error('JSONパース失敗: ' + clean.slice(0, 100))
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        system: ALT_RULES + '\n出力はJSONのみ。コードブロック・前置き・後置き不要。',
+        messages: [{ role: 'user', content: contentParts }]
+      })
+
+      const raw = response.content.find(c => c.type === 'text')?.text || ''
+      const clean = raw.replace(/```json|```/g, '').trim()
+      let parsed
+      try { parsed = JSON.parse(clean) }
+      catch (e) {
+        const match = clean.match(/\{[\s\S]*\}/)
+        if (match) parsed = JSON.parse(match[0])
+        else parsed = { imageType: 'その他', alts: ['', ''], reason: 'パース失敗', isDecorative: false }
+      }
+
+      results.push({
+        index: i + 1,
+        filename: img.filename || `画像${i + 1}`,
+        ...parsed
+      })
     }
 
-    return res.status(200).json({ results: parsed.results || [] })
+    return res.status(200).json({ results })
   } catch (e) {
     console.error(e)
     return res.status(500).json({ error: e.message })

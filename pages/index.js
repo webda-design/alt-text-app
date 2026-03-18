@@ -41,7 +41,6 @@ export default function Home() {
     const imgData = []
     tokens.forEach((tok, i) => {
       if (tok.type !== 'img') return
-      // 前後テキストを広めに取得（最大10ブロック・400文字）
       let prev = '', pc = 0
       for (let j = i - 1; j >= 0 && pc < 10; j--) {
         if (tokens[j].type === 'text') { prev = tokens[j].value + ' ' + prev; pc++ }
@@ -50,24 +49,34 @@ export default function Home() {
       for (let j = i + 1; j < tokens.length && nc < 10; j++) {
         if (tokens[j].type === 'text') { next += ' ' + tokens[j].value; nc++ }
       }
-      // figcaptionなどのキャプション取得
-      const caption = tok.caption || ''
       imgData.push({
         ...tok,
         prev: prev.trim().slice(0, 400),
         next: next.trim().slice(0, 400),
-        caption
+        caption: ''
       })
     })
 
-    // キャプションをDOMから取得
+    // figcaptionを取得
     doc.querySelectorAll('figure').forEach(fig => {
       const img = fig.querySelector('img')
       const cap = fig.querySelector('figcaption')
       if (img && cap) {
         const src = img.getAttribute('src') || ''
-        const found = imgData.find(d => d.src === src || d.filename === src.split('/').pop().split('?')[0])
+        const found = imgData.find(d => d.src === src)
         if (found) found.caption = cap.textContent.trim()
+      }
+    })
+
+    // base64画像（コピペで貼り付けられたdata:URL画像）を抽出
+    doc.querySelectorAll('img').forEach((imgEl, idx) => {
+      const src = imgEl.getAttribute('src') || ''
+      if (src.startsWith('data:')) {
+        const match = src.match(/^data:(image\/[^;]+);base64,(.+)$/)
+        if (match && imgData[idx]) {
+          imgData[idx].base64 = match[2].slice(0, 1000000) // 最大1MB
+          imgData[idx].mediaType = match[1]
+        }
       }
     })
 
@@ -101,11 +110,29 @@ export default function Home() {
     setLoading(true)
     setImgDataCache(imgData)
 
+    // 外部URL画像をbase64に変換
+    const imgDataWithBase64 = await Promise.all(imgData.map(async (img) => {
+      if (img.base64) return img // すでにbase64あり（data:URL）
+      if (!img.src || img.src.startsWith('blob:')) return img // blob画像はスキップ
+      try {
+        const r = await fetch('/api/fetch-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: img.src })
+        })
+        if (r.ok) {
+          const d = await r.json()
+          return { ...img, base64: d.base64, mediaType: d.mediaType }
+        }
+      } catch (e) {}
+      return img
+    }))
+
     try {
       const resp = await fetch('/api/generate-alt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ allText, imgData, manualCount: useCount })
+        body: JSON.stringify({ allText, imgData: imgDataWithBase64, manualCount: useCount })
       })
       const data = await resp.json()
       if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`)
