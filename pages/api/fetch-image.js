@@ -8,12 +8,23 @@ export default async function handler(req, res) {
       signal: AbortSignal.timeout(8000)
     })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const contentType = response.headers.get('content-type') || 'image/jpeg'
+    const contentType = response.headers.get('content-type') || ''
     const mediaType = contentType.split(';')[0].trim()
-    if (!mediaType.startsWith('image/')) throw new Error('Not an image')
+
+    // SVGはbase64ではなくテキストとして返す
+    if (mediaType === 'image/svg+xml' || url.toLowerCase().endsWith('.svg')) {
+      const svgText = await response.text()
+      return res.status(200).json({ svgText: svgText.slice(0, 3000), mediaType: 'image/svg+xml' })
+    }
+
+    // PNG/JPEG/GIF/WebPはbase64として返す
+    const supported = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    const mt = supported.find(t => mediaType.includes(t.split('/')[1])) || 'image/jpeg'
+    if (!mt) throw new Error('Unsupported image type: ' + mediaType)
+
     const buffer = await response.arrayBuffer()
     const base64 = Buffer.from(buffer).toString('base64')
-    return res.status(200).json({ base64, mediaType })
+    return res.status(200).json({ base64, mediaType: mt })
   } catch (e) {
     return res.status(500).json({ error: e.message })
   }

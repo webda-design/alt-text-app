@@ -123,6 +123,7 @@ export default function Home() {
         })
         if (r.ok) {
           const d = await r.json()
+          if (d.svgText) return { ...img, svgText: d.svgText, mediaType: d.mediaType }
           return { ...img, base64: d.base64, mediaType: d.mediaType }
         }
       } catch (e) {}

@@ -92,15 +92,12 @@ export default async function handler(req, res) {
       // メッセージのコンテンツを構築
       const contentParts = []
 
-      // 画像がbase64で提供されている場合は画像として送信
-      if (img.base64 && img.mediaType) {
+      // SVG非対応のため、jpeg/png/gif/webpのみビジョンAPIに送信
+      const SUPPORTED = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+      if (img.base64 && img.mediaType && SUPPORTED.includes(img.mediaType)) {
         contentParts.push({
           type: 'image',
-          source: {
-            type: 'base64',
-            media_type: img.mediaType,
-            data: img.base64
-          }
+          source: { type: 'base64', media_type: img.mediaType, data: img.base64 }
         })
       }
 
@@ -110,6 +107,7 @@ export default async function handler(req, res) {
       if (img.caption) imgContext.push(`キャプション: 「${img.caption}」`)
       if (img.prev) imgContext.push(`直前テキスト: 「${img.prev}」`)
       if (img.next) imgContext.push(`直後テキスト: 「${img.next}」`)
+      if (img.svgText) imgContext.push(`SVGコンテンツ（テキスト・図解の内容を読み取ってください）: ${img.svgText.slice(0, 1500)}`)
 
       const promptText = `
 【記事全文】
