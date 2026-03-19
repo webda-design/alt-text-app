@@ -75,7 +75,7 @@ JIS X 8341-3 事例15（棒グラフ）・事例16（円グラフ）より：
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { allText, imgData, manualCount } = req.body
+  const { allText, imgData, manualCount, overrideType } = req.body
 
   if (!allText && (!imgData || imgData.length === 0)) {
     return res.status(400).json({ error: 'コンテンツが空です' })
@@ -118,11 +118,11 @@ ${allText}
 【この画像（画像${i + 1}/${useCount}）の情報】
 ${imgContext.join('\n') || '（情報なし）'}
 
-上記のルールに従い、この画像のaltテキストを2案生成してください。
-${img.base64 ? '※画像が提供されています。画像の中身を直接確認してaltを生成してください。グラフの場合は画像内の数値を読み取って使用してください。' : '※画像は提供されていません。前後テキストと記事全文から判断してください。'}
+${overrideType ? `【重要】この画像のカテゴリはユーザーが「${overrideType}」と指定しました。このカテゴリとして扱い、対応するルールでaltを生成してください。` : '上記のルールに従い、画像の種類を判定してaltテキストを生成してください。'}
+${img.base64 ? '※画像が提供されています。画像の中身を直接確認してください。グラフの場合は画像内の数値を読み取って使用してください。' : '※画像は提供されていません。前後テキストと記事全文から判断してください。'}
 
 出力はJSONのみ：
-{"imageType":"円グラフ|棒グラフ|フローチャート|人物写真|風景写真|商品写真|ロゴ|バナー|装飾|その他","alts":["alt案A","alt案B"],"reason":"判定根拠","isDecorative":false}
+{"imageType":"${overrideType || '円グラフ|棒グラフ|フローチャート|人物写真|風景写真|商品写真|ロゴ|バナー|装飾|その他'}","alts":["alt案A","alt案B"],"reason":"判定根拠","isDecorative":${overrideType === '装飾' ? 'true' : 'false'}}
 `
 
       contentParts.push({ type: 'text', text: promptText })
